@@ -11,6 +11,6 @@ module.exports = [
   },
   {
     key: "image",
-    type: "string",
+    type: "url",
   }
 ]

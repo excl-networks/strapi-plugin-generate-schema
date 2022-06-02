@@ -11,7 +11,7 @@ module.exports = [
   },
   {
     key: "image",
-    type: "image",
+    type: "url",
   },
   {
     key: "author",

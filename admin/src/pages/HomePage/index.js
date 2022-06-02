@@ -4,23 +4,20 @@
  *
  */
 
-import React, {memo, useState, useEffect} from 'react';
-import {Select, Option} from '@strapi/design-system/Select';
+import React, {memo, useEffect, useState} from 'react';
+import {Option, Select} from '@strapi/design-system/Select';
 import Earth from '@strapi/icons/Earth';
 import Stack from '@strapi/icons/Stack';
 // import PropTypes from 'prop-types';
-import pluginId from '../../pluginId';
 import {Box} from '@strapi/design-system/Box';
-import {Flex} from '@strapi/design-system/Flex';
 import {Typography} from '@strapi/design-system/Typography';
 import {EmptyStateLayout} from '@strapi/design-system/EmptyStateLayout';
 import {BaseHeaderLayout, ContentLayout} from '@strapi/design-system/Layout';
-import {Table, Thead, Tbody, Tr, Td, Th} from '@strapi/design-system/Table';
-import {ModalLayout, ModalBody, ModalHeader, ModalFooter} from '@strapi/design-system/ModalLayout';
+import {Table, Tbody, Td, Th, Thead, Tr} from '@strapi/design-system/Table';
+import {ModalBody, ModalFooter, ModalHeader, ModalLayout} from '@strapi/design-system/ModalLayout';
 import {Button} from '@strapi/design-system/Button';
 import collectionRequests from "../../api/collections";
 import schemasRequest from "../../api/schemas";
-import {GridLayout} from '@strapi/design-system/Layout';
 
 const HomePage = () => {
   // List of all of the valid collections
@@ -42,7 +39,6 @@ const HomePage = () => {
 
   const handleSchemaFormChange = (index, event) => {
     let data = [...parsedSchemaFields]
-    console.log("data", data)
     data[index]["value"] = event
     setParsedSchemaFields(data)
   }
@@ -53,7 +49,6 @@ const HomePage = () => {
     data.map((field) => {
       field["selectOptions"] = parseOptions(field)
     })
-    console.log("schemaFieldsData", data)
     setParsedSchemaFields(data)
   }, [selectedSchema])
   const parseSchemaFields = (schemaOptions, parent = null) => {
@@ -86,25 +81,19 @@ const HomePage = () => {
         data[data.length - 1]["parent"] = parent
       }
     });
-    console.log(data)
     return data;
   }
   useEffect(() => {
     collectionRequests.getCollections().then(res => {
-      console.log("collections", res)
-      console.log(typeof res.data)
       setCollections(res.data);
     });
   }, [setCollections]);
   useEffect(() => {
     schemasRequest.getSchemas().then(res => {
-      console.log(res)
-      console.log(typeof res.data)
       setSchemas(res.data);
     });
   }, [setSchemas]);
   const submitMappedSchema = () => {
-    console.log("parsedSchemaFields", parsedSchemaFields)
     let data = parsedSchemaFields.map((field) => {
       return {
         key: field.key,
@@ -114,13 +103,11 @@ const HomePage = () => {
 
       }
     })
-    console.log("data", data)
     schemasRequest.mapSchema({
       collection: selectedCollection,
       schemaType: schemas[selectedSchema].name,
       data: data
     }).then(res => {
-      console.log(res)
       setIsCreateModalVisible(false)
     });
   }
@@ -131,7 +118,6 @@ const HomePage = () => {
   }
   const deleteSchema = () => {
     schemasRequest.deleteSchema(selectedSchema).then(res => {
-      console.log(res)
       setIsDeleteModalVisible(false)
     });
   }
@@ -148,82 +134,97 @@ const HomePage = () => {
     setSelectedSchema(undefined)
   }
   const fieldOptions = (field) => {
-    console.log(field)
+    let options = []
     if (field.type === "select") {
-      return field.options.map((option, j) =>
-        <Option key={j} value={option}>{option}</Option>
+      field.options.forEach((option, j) =>
+        options.push(<Option key={j} value={option}>{option}</Option>)
       )
+      return options;
     }
-    return field.selectOptions.map((item, i) => {
-      console.log("here")
-      if(item.type=== "nested"){
-        console.log("item", item)
-        return item.children.map((child, j) => {
-          console.log("child", child)
-          return <Option key={j} value={child.value}>{item.label + ": " + child.label}</Option>
+    field.selectOptions.forEach((item, i) => {
+      if (item.type === "nested") {
+        let childArray = []
+        item.children.forEach((child, j) => {
+          if (renderOption(child.strapiFieldType, field.type)) {
+            childArray.push(<Option key={j + item.label} value={child.value}>{item.label + ": " + child.label}</Option>)
+          }
         })
+        options = [...options, ...childArray]
+      } else {
+        if (renderOption(item.strapiFieldType, field.type)) {
+          options.push(<Option key={i} value={item.value}>{item.label}</Option>)
+        }
+
       }
-      return <Option key={i} value={item.value}>{item.label}</Option>
+
     })
+    return options;
+  }
+  const renderOption = (strapiFieldType, optionFieldType) => {
+    let fieldTypeMap = {
+      string: ["string", "datetime", "richtext", "number"],
+      url: ["string", "richtext", 'fileupload'],
+    }
+    let keys = Object.keys(fieldTypeMap)
+    for (let key of keys) {
+      if (optionFieldType === key && fieldTypeMap[key].includes(strapiFieldType)) {
+        return true
+      }
+    }
+    return false
+
   }
   const parseOptions = () => {
-    let parsedCollections = collections
-    let parsedAttributes = parsedCollections[selectedCollectionIndex].attributes
-  // Adding all of the relational fields to the attributes
+    let parsedAttributes = collections[selectedCollectionIndex].attributes
+    // Adding all of the relational fields to the attributes
     Object.keys(parsedAttributes).map((key) => {
       if (parsedAttributes[key].type === "relation") {
         collections.forEach(collection => {
           if (collection.uid === parsedAttributes[key].target) {
-            console.log("collection", collection)
             parsedAttributes[collection.collectionName + "_schemaRelation"] = {}
             Object.keys(collection.attributes).map(key => {
-              console.log("collectionName" , collection.collectionName)
               parsedAttributes[collection.collectionName + "_schemaRelation"][key] = collection.attributes[key]
             })
-            console.log("parse Options collection", collection)
             parsedAttributes[collection.collectionName + "_schemaRelation"]["relation"] = collection.apiName
 
           }
         })
       }
     });
-    console.log("parsedCollections", parsedCollections)
-    console.log("parsedAttributes", parsedAttributes)
     let options = []
     Object.keys(parsedAttributes).map((key, i) => {
-      if(key.endsWith("_schemaRelation")) {
+      console.log("parsedAttributes[key]", parsedAttributes[key])
+      console.log("key", key)
+      if (key.endsWith("_schemaRelation")) {
         options.push({
           label: key.replace("_schemaRelation", ""),
           type: "nested",
           children: []
         })
         Object.keys(parsedAttributes[key]).map(relation_key => {
-          console.log("parsedAttributes", parsedAttributes)
-          console.log("relation_key", relation_key)
-          if(parsedAttributes[key][relation_key].type === "relation" || relation_key.endsWith("_schemaRelation")) {
+          if (parsedAttributes[key][relation_key].type === "relation" || relation_key.endsWith("_schemaRelation")) {
             return;
           }
-          console.log("parsedAttributes[key].relation", parsedAttributes[key].relation)
           options[i].children.push({
+            strapiFieldType: parsedAttributes[key][relation_key].target === "plugin::upload.file" ? "fileupload" : parsedAttributes[key][relation_key].type,
             label: relation_key,
             value: "generateSchemaRelation_" + parsedAttributes[key].relation + "_" + relation_key
           })
         })
-      }else{
+      } else {
         options.push({
+          strapiFieldType: parsedAttributes[key].target === "plugin::upload.file" ? "fileupload" : parsedAttributes[key].type,
           label: key,
           value: key
         })
       }
     })
-    console.log("options", options)
     return options
   }
   return (
     <>
       {isCreateModalVisible && <ModalLayout onClose={() => {
         closeModal();
-        console.log("closing modal")
       }
       } labelledBy="title">
         <ModalHeader>
@@ -333,30 +334,30 @@ const HomePage = () => {
             <Tbody>
               {collections.map((collection, i) =>
                 <Tr key={collection.collectionName}>
-                <Td>
-                  <Typography textColor="neutral800">{collection.collectionName}</Typography>
-                </Td>
-                <Td>
+                  <Td>
+                    <Typography textColor="neutral800">{collection.collectionName}</Typography>
+                  </Td>
+                  <Td>
 
-                  <Button onClick={() => {
-                    setIsCreateModalVisible(prev => !prev)
-                    setSelectedCollection(collection.collectionName)
-                    setSelectedCollectionIndex(i)
-                  }
-                  }>Map Type</Button>
+                    <Button onClick={() => {
+                      setIsCreateModalVisible(prev => !prev)
+                      setSelectedCollection(collection.collectionName)
+                      setSelectedCollectionIndex(i)
+                    }
+                    }>Map Type</Button>
 
 
-                </Td>
-                <Td>
-                  <Button variant="danger" onClick={() => {
-                    setIsDeleteModalVisible(true)
-                    setSelectedCollection(collection.collectionName)
-                    setSelectedCollectionIndex(i)
-                    findMappedSchemas(collection.collectionName)
-                  }
-                  }>Delete Type</Button>
-                </Td>
-              </Tr>)}
+                  </Td>
+                  <Td>
+                    <Button variant="danger" onClick={() => {
+                      setIsDeleteModalVisible(true)
+                      setSelectedCollection(collection.collectionName)
+                      setSelectedCollectionIndex(i)
+                      findMappedSchemas(collection.collectionName)
+                    }
+                    }>Delete Type</Button>
+                  </Td>
+                </Tr>)}
             </Tbody>
           </Table>
         </Box>;

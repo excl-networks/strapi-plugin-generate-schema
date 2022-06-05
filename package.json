@@ -1,24 +1,27 @@
 {
-  "name": "generate-schema",
+  "name": "strapi-plugin-generate-schema",
   "version": "0.0.0",
-  "description": "This is the description of the plugin.",
+  "description": "Generate JSON LD for different collections",
   "strapi": {
     "name": "generate-schema",
-    "description": "Description of Generate Schema plugin",
+    "description": "Generate JSON LD for different collections",
     "kind": "plugin",
     "displayName": "Generate Schema"
   },
   "dependencies": {
-    "jsonld": "^5.2.0"
   },
   "author": {
-    "name": "A Strapi developer"
+    "name": "Excl Networks"
   },
   "maintainers": [
     {
-      "name": "A Strapi developer"
+      "name": "Excl Networks"
     }
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/excl-networks/strapi-plugin-generate-schema"
+  },
   "engines": {
     "node": ">=12.x.x <=16.x.x",
     "npm": ">=6.0.0"

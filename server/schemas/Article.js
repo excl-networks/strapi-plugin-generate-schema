@@ -30,5 +30,18 @@ module.exports = [
         type: "string",
       }
     ]
+  },
+  {
+    key: "datePublished",
+    type: "string",
+
+  },
+  {
+    key: "dateCreated",
+    type: "string",
+  },
+  {
+    key: "dateModified",
+    type: "string",
   }
 ]
